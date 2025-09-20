@@ -24,7 +24,7 @@ const Signup = () => {
     location: "",
     age: "",
     farmerType: "",
-    preferredLanguage: "en"
+    preferredLanguage: "english"
   });
   const [locationInput, setLocationInput] = useState("");
   const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);

@@ -1,251 +1,193 @@
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Plus, FolderOpen, Calendar, MapPin, TrendingUp, Download, Eye } from "lucide-react";
+import { Loader2, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext"; // changed import
 
 const Projects = () => {
-  const [projects] = useState([
-    {
-      id: 1,
-      name: "Wheat Crop 2024 - Field A",
-      crop: "Wheat",
-      area: "5 acres",
-      location: "Maharashtra",
-      startDate: "2024-01-15",
-      expectedHarvest: "2024-05-20",
-      progress: 75,
-      status: "Growing",
-      soilReports: 2,
-      diseaseReports: 1,
-      fertilizerPlans: 3,
-      weatherLogs: 45,
-      estimatedYield: "25 quintals/acre",
-      investmentSoFar: "Rs 45,000"
-    },
-    {
-      id: 2,
-      name: "Tomato Greenhouse Project",
-      crop: "Tomato",
-      area: "2 acres",
-      location: "Karnataka",
-      startDate: "2024-03-01",
-      expectedHarvest: "2024-07-15",
-      progress: 45,
-      status: "Flowering",
-      soilReports: 1,
-      diseaseReports: 3,
-      fertilizerPlans: 4,
-      weatherLogs: 20,
-      estimatedYield: "80 quintals/acre",
-      investmentSoFar: "Rs 78,000"
-    },
-    {
-      id: 3,
-      name: "Cotton Field - Monsoon Crop",
-      crop: "Cotton",
-      area: "8 acres",
-      location: "Gujarat",
-      startDate: "2024-06-10",
-      expectedHarvest: "2024-11-30",
-      progress: 25,
-      status: "Vegetative",
-      soilReports: 1,
-      diseaseReports: 0,
-      fertilizerPlans: 2,
-      weatherLogs: 15,
-      estimatedYield: "18 quintals/acre",
-      investmentSoFar: "Rs 32,000"
-    }
-  ]);
+  const { t } = useLanguage(); // changed hook
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "growing": return "default";
-      case "flowering": return "secondary";
-      case "vegetative": return "outline";
-      case "harvesting": return "destructive";
-      default: return "outline";
-    }
-  };
+  useEffect(() => {
+    const fetchProjects = async () => {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("http://localhost:4000/project/", {
+          headers: { Authorization: `Bearer ${token || ""}` }
+        });
+        const data = await res.json();
+        setProjects(data.projects || []);
+      } catch {
+        setProjects([]);
+      }
+      setLoading(false);
+    };
+    fetchProjects();
+  }, []);
 
-  const getProgressColor = (progress: number) => {
-    if (progress >= 75) return "bg-green-500";
-    if (progress >= 50) return "bg-yellow-500";
-    if (progress >= 25) return "bg-blue-500";
-    return "bg-gray-400";
-  };
+  const renderBudget = (budget: any) => (
+    <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+      {budget &&
+        Object.entries(budget)
+          .filter(([key]) => key !== "total")
+          .map(([key, value]) => (
+            <div key={key} className="flex justify-between">
+              <span className="capitalize">{t(key)}</span>
+            
+            </div>
+          ))}
+      {budget && (
+        <div className="flex justify-between font-bold border-t pt-2 col-span-2">
+          <span>{t("Total")}</span>
+          <span>{budget.total}</span>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderStep = (step: any, idx: number) => (
+    <div key={idx} className="mb-4 p-3 border rounded-lg bg-muted">
+      <div className="font-semibold mb-1">
+        {t(step.stage)}{" "}
+        <span className="text-xs text-muted-foreground">
+          ({step.duration})
+        </span>
+      </div>
+      {step.fertilizers && Array.isArray(step.fertilizers) && (
+        <div className="mb-1">
+          <span className="font-medium text-xs">{t("Fertilizers")}:</span>
+          <ul className="list-disc list-inside ml-4">
+            {step.fertilizers.map((f: any, i: number) => (
+              <li key={i} className="text-xs">
+                {f.name} - {f.dosage} ({t(f.applicationMethod)}, {f.timing})
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <ul className="list-disc list-inside ml-4 text-sm">
+        {step.tasks &&
+          Array.isArray(step.tasks) &&
+          step.tasks.map((task: string, i: number) => <li key={i}>{t(task)}</li>)}
+      </ul>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-primary mb-2">Crop Projects</h1>
-            <p className="text-xl text-muted-foreground">
-              Track your farming projects from seed to harvest with comprehensive management
-            </p>
+          <h1 className="text-4xl font-bold text-primary mb-2">{t("Crop.Projects")}</h1>
+        </div>
+        {loading ? (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="animate-spin h-5 w-5" /> {t("Loading projects...")}
           </div>
-          <Button variant="hero" size="lg">
-            <Plus className="h-5 w-5" />
-            New Project
-          </Button>
-        </div>
-
-        {/* Project Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="animate-fade-in">
-            <CardContent className="p-6 text-center">
-              <FolderOpen className="h-8 w-8 text-primary mx-auto mb-2" />
-              <div className="text-2xl font-bold">{projects.length}</div>
-              <div className="text-sm text-muted-foreground">Active Projects</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="animate-fade-in" style={{ animationDelay: "0.1s" }}>
-            <CardContent className="p-6 text-center">
-              <MapPin className="h-8 w-8 text-success mx-auto mb-2" />
-              <div className="text-2xl font-bold">15</div>
-              <div className="text-sm text-muted-foreground">Total Acres</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="animate-fade-in" style={{ animationDelay: "0.2s" }}>
-            <CardContent className="p-6 text-center">
-              <TrendingUp className="h-8 w-8 text-earth mx-auto mb-2" />
-              <div className="text-2xl font-bold">Rs 1.55L</div>
-              <div className="text-sm text-muted-foreground">Total Investment</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="animate-fade-in" style={{ animationDelay: "0.3s" }}>
-            <CardContent className="p-6 text-center">
-              <Calendar className="h-8 w-8 text-accent mx-auto mb-2" />
-              <div className="text-2xl font-bold">123</div>
-              <div className="text-sm text-muted-foreground">Expected Quintals</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Projects List */}
-        <div className="space-y-6">
-          {projects.map((project, index) => (
-            <Card key={project.id} className="animate-slide-up hover:shadow-medium transition-shadow" 
-                  style={{ animationDelay: `${index * 0.1}s` }}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-xl mb-2">{project.name}</CardTitle>
-                    <CardDescription className="flex items-center gap-4">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-4 w-4" />
-                        {project.location} • {project.area}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        Started: {new Date(project.startDate).toLocaleDateString()}
-                      </span>
-                    </CardDescription>
-                  </div>
-                  <Badge variant={getStatusColor(project.status)}>
-                    {project.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              
-              <CardContent>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Progress Section */}
-                  <div className="space-y-4">
+        ) : (
+          <div className="space-y-6">
+            {projects.length === 0 && (
+              <div className="text-muted-foreground text-center">
+                {t("No projects found.")}
+              </div>
+            )}
+            {projects.map((project) => {
+              const cropPlan = project.plan?.cropPlan;
+              if (!cropPlan) return null;
+              return (
+                <Card
+                  key={project._id}
+                  className="animate-fade-in hover:shadow-medium transition-shadow"
+                >
+                  <CardHeader
+                    className="cursor-pointer flex flex-row items-center justify-between"
+                    onClick={() =>
+                      setExpanded(expanded === project._id ? null : project._id)
+                    }
+                  >
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium">Project Progress</span>
-                        <span className="text-sm text-muted-foreground">{project.progress}%</span>
-                      </div>
-                      <Progress value={project.progress} className="h-3" />
+                      <CardTitle className="text-xl flex items-center gap-2">
+                        {t(cropPlan.crop)}
+                        <span className="text-base text-muted-foreground">
+                          ({t(cropPlan.variety)})
+                        </span>
+                      </CardTitle>
+                      <CardDescription>
+                        <span className="font-medium">{t("Duration")}:</span>{" "}
+                        {cropPlan.totalDuration}
+                        <span className="mx-2">|</span>
+                        <span className="font-medium">{t("Budget")}:</span>{" "}
+                        {cropPlan.budget?.total}
+                      </CardDescription>
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Expected Harvest</p>
-                        <p className="font-medium">{new Date(project.expectedHarvest).toLocaleDateString()}</p>
+                    <Button variant="outline" size="icon">
+                      {expanded === project._id ? <ChevronUp /> : <ChevronDown />}
+                    </Button>
+                  </CardHeader>
+                  {expanded === project._id && (
+                    <CardContent>
+                      <div className="mb-4">
+                        <div className="font-semibold mb-1">{t("Budget")}</div>
+                        {renderBudget(cropPlan.budget)}
                       </div>
-                      <div>
-                        <p className="text-muted-foreground">Investment</p>
-                        <p className="font-medium text-earth">{project.investmentSoFar}</p>
+                      <div className="mb-4">
+                        <div className="font-semibold mb-1">{t("Steps")}</div>
+                        {Array.isArray(cropPlan.steps) &&
+                          cropPlan.steps.map(renderStep)}
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Reports Summary */}
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-sm">Project Reports</h4>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div className="flex justify-between">
-                        <span>Soil Reports</span>
-                        <Badge variant="outline">{project.soilReports}</Badge>
+                      <div className="mb-4">
+                        <div className="font-semibold mb-1">
+                          {t("Organic Amendments")}
+                        </div>
+                        <ul className="list-disc list-inside ml-4 text-sm">
+                          {Array.isArray(cropPlan.organicAmendments) &&
+                            cropPlan.organicAmendments.map(
+                              (item: string, i: number) => (
+                                <li key={i}>{t(item)}</li>
+                              )
+                            )}
+                        </ul>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Disease Reports</span>
-                        <Badge variant="outline">{project.diseaseReports}</Badge>
+                      <div className="mb-4">
+                        <div className="font-semibold mb-1">{t("Micronutrients")}</div>
+                        <ul className="list-disc list-inside ml-4 text-sm">
+                          {Array.isArray(cropPlan.micronutrients) &&
+                            cropPlan.micronutrients.map(
+                              (item: string, i: number) => (
+                                <li key={i}>{t(item)}</li>
+                              )
+                            )}
+                        </ul>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Fertilizer Plans</span>
-                        <Badge variant="outline">{project.fertilizerPlans}</Badge>
+                      <div className="mb-4">
+                        <div className="font-semibold mb-1">
+                          {t("Safety & Environmental Tips")}
+                        </div>
+                        <ul className="list-disc list-inside ml-4 text-sm">
+                          {Array.isArray(cropPlan.safetyAndEnvironmentalTips) &&
+                            cropPlan.safetyAndEnvironmentalTips.map(
+                              (item: string, i: number) => (
+                                <li key={i}>{t(item)}</li>
+                              )
+                            )}
+                        </ul>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Weather Logs</span>
-                        <Badge variant="outline">{project.weatherLogs}</Badge>
+                      <div className="mb-4">
+                        <div className="font-semibold mb-1">{t("Notes")}</div>
+                        <div className="text-sm">{t(cropPlan.notes)}</div>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Expected Outcomes */}
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-sm">Expected Outcomes</h4>
-                    <div className="space-y-2">
-                      <div className="p-3 bg-success/10 border border-success/20 rounded-lg">
-                        <p className="text-sm font-medium text-success">Estimated Yield</p>
-                        <p className="text-lg font-bold text-success">{project.estimatedYield}</p>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="flex-1">
-                          <Eye className="h-4 w-4" />
-                          View Details
-                        </Button>
-                        <Button variant="outline" size="sm" className="flex-1">
-                          <Download className="h-4 w-4" />
-                          Report
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Create New Project */}
-        <Card className="mt-8 border-dashed border-2 border-primary/30 hover:border-primary/50 transition-colors">
-          <CardContent className="p-12 text-center">
-            <FolderOpen className="h-16 w-16 text-primary/50 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Start New Crop Project</h3>
-            <p className="text-muted-foreground mb-6">
-              Create a comprehensive project to track your crop from planting to harvest
-            </p>
-            <Button variant="hero" size="lg">
-              <Plus className="h-5 w-5" />
-              Create New Project
-            </Button>
-          </CardContent>
-        </Card>
+                    </CardContent>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

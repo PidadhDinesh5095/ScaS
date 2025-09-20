@@ -14,6 +14,7 @@ const SoilAnalysis = () => {
   const [fileToSend, setFileToSend] = useState<File | null>(null);
   const [analysis, setAnalysis] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -120,7 +121,7 @@ const SoilAnalysis = () => {
                 </div>
               )}
 
-              
+
             </CardContent>
           </Card>
 
@@ -143,99 +144,161 @@ const SoilAnalysis = () => {
                   <p className="text-xs text-muted-foreground">This may take a few moments</p>
                 </div>
               ) : analysis && analysis.soilReport ? (
-                <div className="space-y-6">
-                  {/* Soil Report Summary */}
-                  <div className="p-4 bg-primary/10 rounded-lg">
-                    <div className="font-semibold mb-2">{t('soil.reportSummary') || "Report Summary"}</div>
-                    <div className="text-base">{analysis.soilReport.summary}</div>
-                  </div>
-
-                  {/* Soil Properties */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-xs text-muted-foreground">{t('soil.soilType') || "Soil Type"}</div>
-                      <div className="font-medium">{analysis.soilReport.soilType}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">{t('soil.pH') || "pH"}</div>
-                      <div className="font-medium">{analysis.soilReport.pH}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">{t('soil.organicMatter') || "Organic Matter"}</div>
-                      <div className="font-medium">{analysis.soilReport.organicMatter}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">{t('soil.moisture') || "Moisture"}</div>
-                      <div className="font-medium">{analysis.soilReport.moisture}</div>
-                    </div>
-                  </div>
-
-                  {/* Nutrients */}
-                  <div>
-                    <div className="font-semibold mb-1">{t('soil.nutrients') || "Nutrients"}</div>
-                    <div className="flex flex-wrap gap-2">
-                      <span className="bg-secondary px-2 py-1 rounded text-xs">N: {analysis.soilReport.nutrients?.N}</span>
-                      <span className="bg-secondary px-2 py-1 rounded text-xs">P: {analysis.soilReport.nutrients?.P}</span>
-                      <span className="bg-secondary px-2 py-1 rounded text-xs">K: {analysis.soilReport.nutrients?.K}</span>
-                      {Array.isArray(analysis.soilReport.nutrients?.micronutrients) && analysis.soilReport.nutrients.micronutrients.length > 0 && (
-                        <span className="bg-secondary px-2 py-1 rounded text-xs">
-                          {t('soil.micronutrients') || "Micronutrients"}: {analysis.soilReport.nutrients.micronutrients.join(', ')}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Heavy Metals */}
-                  <div>
-                    <div className="font-semibold mb-1">{t('soil.heavyMetals') || "Heavy Metals"}</div>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(analysis.soilReport.heavyMetals || {}).map(([metal, value]: [string, any]) => (
-                        <span key={metal} className="bg-destructive/10 px-2 py-1 rounded text-xs">
-                          {metal}: {typeof value === "object" && value !== null ? Object.values(value).join(', ') : String(value)}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Issues */}
-                  {Array.isArray(analysis.soilReport.issues) && analysis.soilReport.issues.length > 0 && (
-                    <div>
-                      <div className="font-semibold mb-1">{t('soil.issues') || "Issues"}</div>
-                      <ul className="list-disc list-inside text-sm">
-                        {analysis.soilReport.issues.map((issue: string, idx: number) => (
-                          <li key={idx}>{issue}</li>
-                        ))}
-                      </ul>
-                    </div>
+                <>
+                  {/* Check for valid soil report */}
+                  {analysis.soilReport.isSoilReport === false && (
+                    <>
+                      {toast({
+                        variant: "destructive",
+                        title: "Please upload a valid soil report"
+                      })}
+                    </>
                   )}
+                  <div className="space-y-6">
+                    {/* Soil Report Summary */}
+                    <div className="p-4 bg-primary/10 rounded-lg">
+                      <div className="font-semibold mb-2">{t('soil.reportSummary') || "Report Summary"}</div>
+                      <div className="text-base">{analysis.soilReport.summary}</div>
+                    </div>
 
-                  {/* Recommendations */}
-                  <div>
-                    <h4 className="font-semibold mb-2">{t('soil.recommendations') || "Recommendations"}</h4>
-                    <ul className="list-disc list-inside text-sm space-y-1">
-                      {Array.isArray(analysis.solution?.improvementTips) &&
-                        analysis.solution.improvementTips.map((tip: string, idx: number) => (
-                          <li key={idx}>{tip}</li>
-                        ))}
-                    </ul>
-                  </div>
+                    {/* Soil Properties */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="text-xs text-muted-foreground">{t('soil.soilType') || "Soil Type"}</div>
+                        <div className="font-medium">{analysis.soilReport.soilType}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">{t('soil.pH') || "pH"}</div>
+                        <div className="font-medium">{analysis.soilReport.pH}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">{t('soil.organicMatter') || "Organic Matter"}</div>
+                        <div className="font-medium">{analysis.soilReport.organicMatter}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">{t('soil.moisture') || "Moisture"}</div>
+                        <div className="font-medium">{analysis.soilReport.moisture}</div>
+                      </div>
+                    </div>
 
-                  {/* Suitable Crops */}
-                  <div>
-                    <h4 className="font-semibold mb-2">{t('soil.suitableCrops') || "Suitable Crops"}</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {Array.isArray(analysis.solution?.recommendedCrops) &&
-                        analysis.solution.recommendedCrops.map((crop: string) => (
-                          <span
-                            key={crop}
-                            className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm"
-                          >
-                            {crop}
+                    {/* Nutrients */}
+                    <div>
+                      <div className="font-semibold mb-1">{t('soil.nutrients') || "Nutrients"}</div>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="bg-secondary px-2 py-1 rounded text-xs">N: {analysis.soilReport.nutrients?.N}</span>
+                        <span className="bg-secondary px-2 py-1 rounded text-xs">P: {analysis.soilReport.nutrients?.P}</span>
+                        <span className="bg-secondary px-2 py-1 rounded text-xs">K: {analysis.soilReport.nutrients?.K}</span>
+                        {Array.isArray(analysis.soilReport.nutrients?.micronutrients) && analysis.soilReport.nutrients.micronutrients.length > 0 && (
+                          <span className="bg-secondary px-2 py-1 rounded text-xs">
+                            {t('soil.micronutrients') || "Micronutrients"}: {analysis.soilReport.nutrients.micronutrients.join(', ')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Heavy Metals */}
+                    <div>
+                      <div className="font-semibold mb-1">{t('soil.heavyMetals') || "Heavy Metals"}</div>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(analysis.soilReport.heavyMetals || {}).map(([metal, value]: [string, any]) => (
+                          <span key={metal} className="bg-destructive/10 px-2 py-1 rounded text-xs">
+                            {metal}: {typeof value === "object" && value !== null ? Object.values(value).join(', ') : String(value)}
                           </span>
                         ))}
+                      </div>
+                    </div>
+
+                    {/* Issues */}
+                    {Array.isArray(analysis.soilReport.issues) && analysis.soilReport.issues.length > 0 && (
+                      <div>
+                        <div className="font-semibold mb-1">{t('soil.issues') || "Issues"}</div>
+                        <ul className="list-disc list-inside text-sm">
+                          {analysis.soilReport.issues.map((issue: string, idx: number) => (
+                            <li key={idx}>{issue}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Recommendations */}
+                    <div>
+                      <h4 className="font-semibold mb-2">{t('soil.recommendations') || "Recommendations"}</h4>
+                      <ul className="list-disc list-inside text-sm space-y-1">
+                        {Array.isArray(analysis.solution?.improvementTips) &&
+                          analysis.solution.improvementTips.map((tip: string, idx: number) => (
+                            <li key={idx}>{tip}</li>
+                          ))}
+                      </ul>
+                    </div>
+
+                    {/* Suitable Crops */}
+                    <div>
+                      <h4 className="font-semibold mb-2">{t('soil.suitableCrops') || "Suitable Crops"}</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {Array.isArray(analysis.solution?.recommendedCrops) &&
+                          analysis.solution.recommendedCrops.map((crop: string) => (
+                            <span
+                              key={crop}
+                              className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm"
+                            >
+                              {crop}
+                            </span>
+                          ))}
+                      </div>
+                    </div>
+                    {/* Create Project Button */}
+                    <div>
+                      <Button
+                        className="mt-4"
+                        onClick={async () => {
+                          setIsCreatingProject(true);
+                          const token = localStorage.getItem("token");
+                          try {
+                            const res = await fetch("http://localhost:4000/project/create", {
+                              method: "POST",
+                              headers: {
+                                "Content-Type": "application/json",
+                                Authorization: `Bearer ${token || ""}`,
+                              },
+                              body: JSON.stringify({
+                                report: analysis
+                              }),
+                            });
+                            const data = await res.json();
+                            if (res.ok) {
+                              toast({
+                                title: t("auth.signupSuccess") || "Signup successful!",
+                                description: "Signup successful",
+                                className: "bg-green-500 text-white",
+                              });
+                            } else {
+                              toast({
+                                variant: "destructive",
+                                title: data.error || "Failed to create project"
+                              });
+                            }
+                          } catch (err: any) {
+                            toast({
+                              variant: "destructive",
+                              title: err.message || "Failed to create project"
+                            });
+                          }
+                          setIsCreatingProject(false);
+                        }}
+                        disabled={isCreatingProject}
+                      >
+                        {isCreatingProject ? (
+                          <span className="flex items-center gap-2">
+                            <span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+                            Creating...
+                          </span>
+                        ) : (
+                          "Create Project"
+                        )}
+                      </Button>
                     </div>
                   </div>
-                </div>
+                </>
               ) : (
                 <div className="text-center py-8">
                   <img
