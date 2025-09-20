@@ -194,134 +194,140 @@ const DiseaseDetection = () => {
                   <p className="text-xs text-muted-foreground">Detecting diseases and pests</p>
                 </div>
               ) : detection && detection.diagnosis ? (
-                <div className="space-y-6" id="treatment-report">
-                  {/* Disease Identification */}
-                  <div className="p-4 bg-destructive/10 rounded-lg border border-destructive/20">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-lg font-semibold text-destructive">{detection.diagnosis.disease}</h3>
-                      <span className="text-sm font-medium bg-destructive/20 text-destructive px-2 py-1 rounded">
-                        {detection.diagnosis.confidence}% confident
-                      </span>
+                <>
+                  {/* Check for valid disease image */}
+                  {detection.diagnosis.isDiseaseImage === false && (
+                    <>
+                      {alert("Please upload a valid image")}
+                    </>
+                  )}
+                  <div className="space-y-6" id="treatment-report">
+                    {/* Disease Identification */}
+                    <div className="p-4 bg-destructive/10 rounded-lg border border-destructive/20">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-lg font-semibold text-destructive">{detection.diagnosis.disease}</h3>
+                        <span className="text-sm font-medium bg-destructive/20 text-destructive px-2 py-1 rounded">
+                          {detection.diagnosis.confidence}% confident
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Detected in: {detection.diagnosis.cropType} • Severity: {detection.diagnosis.severity}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Detected in: {detection.diagnosis.cropType} • Severity: {detection.diagnosis.severity}
-                    </p>
-                  </div>
 
-                  {/* Symptoms */}
-                  <div>
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-warning" />
-                      Observed Symptoms
-                    </h4>
-                    <div className="space-y-2">
-                      {Array.isArray(detection.diagnosis.symptoms) &&
-                        detection.diagnosis.symptoms.map((symptom: string, index: number) => (
-                          <div key={index} className="flex items-start gap-2">
-                            <div className="w-2 h-2 bg-warning rounded-full mt-2 flex-shrink-0" />
-                            <p className="text-sm">{symptom}</p>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-
-                  {/* Immediate Treatment */}
-                  <div>
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-destructive" />
-                      {t('disease.treatment')}
-                    </h4>
-                    <div className="space-y-2">
-                      {Array.isArray(detection.diagnosis.treatment?.immediate) &&
-                        detection.diagnosis.treatment.immediate.map((action: string, index: number) => (
-                          <div key={index} className="flex items-start gap-2">
-                            <CheckCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
-                            <p className="text-sm">{action}</p>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-
-                  {/* Preventive Treatment */}
-                  <div>
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-warning" />
-                      Preventive Tips
-                    </h4>
-                    <div className="space-y-2">
-                      {Array.isArray(detection.diagnosis.treatment?.preventive) &&
-                        detection.diagnosis.treatment.preventive.map((tip: string, index: number) => (
-                          <div key={index} className="flex items-start gap-2">
-                            <CheckCircle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
-                            <p className="text-sm">{tip}</p>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-
-                  {/* Recommended Products */}
-                  <div>
-                    <h4 className="font-semibold mb-3">Recommended Products</h4>
-                    <div className="space-y-3">
-                      {Array.isArray(detection.diagnosis.products) &&
-                        detection.diagnosis.products.map((product: any, index: number) => (
-                          <div key={index} className="p-3 bg-secondary rounded-lg">
-                            <p className="font-medium text-sm">{product.name}</p>
-                            <p className="text-xs text-muted-foreground">Dosage: {product.dosage}</p>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-
-                  {/* Nutrient Recommendations */}
-                  {Array.isArray(detection.diagnosis.nutrientRecommendations) && detection.diagnosis.nutrientRecommendations.length > 0 && (
+                    {/* Symptoms */}
                     <div>
-                      <h4 className="font-semibold mb-3">Nutrient Recommendations</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {detection.diagnosis.nutrientRecommendations.map((nutrient: string, idx: number) => (
-                          <span key={idx} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
-                            {nutrient}
-                          </span>
-                        ))}
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-warning" />
+                        Observed Symptoms
+                      </h4>
+                      <div className="space-y-2">
+                        {Array.isArray(detection.diagnosis.symptoms) &&
+                          detection.diagnosis.symptoms.map((symptom: string, index: number) => (
+                            <div key={index} className="flex items-start gap-2">
+                              <div className="w-2 h-2 bg-warning rounded-full mt-2 flex-shrink-0" />
+                              <p className="text-sm">{symptom}</p>
+                            </div>
+                          ))}
                       </div>
                     </div>
-                  )}
 
-                  {/* Pesticide Recommendations */}
-                  {Array.isArray(detection.diagnosis.pesticideRecommendations) && detection.diagnosis.pesticideRecommendations.length > 0 && (
+                    {/* Immediate Treatment */}
                     <div>
-                      <h4 className="font-semibold mb-3">Pesticide Recommendations</h4>
-                      <ul className="list-disc list-inside text-sm">
-                        {detection.diagnosis.pesticideRecommendations.map((rec: string, idx: number) => (
-                          <li key={idx}>{rec}</li>
-                        ))}
-                      </ul>
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-destructive" />
+                        {t('disease.treatment')}
+                      </h4>
+                      <div className="space-y-2">
+                        {Array.isArray(detection.diagnosis.treatment?.immediate) &&
+                          detection.diagnosis.treatment.immediate.map((action: string, index: number) => (
+                            <div key={index} className="flex items-start gap-2">
+                              <CheckCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                              <p className="text-sm">{action}</p>
+                            </div>
+                          ))}
+                      </div>
                     </div>
-                  )}
 
-                  {/* Recovery Timeline */}
-                  <div className="p-3 bg-success/10 rounded-lg border border-success/20">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Clock className="h-4 w-4 text-success" />
-                      <span className="text-sm font-medium text-success">Expected Recovery</span>
+                    {/* Preventive Treatment */}
+                    <div>
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-warning" />
+                        Preventive Tips
+                      </h4>
+                      <div className="space-y-2">
+                        {Array.isArray(detection.diagnosis.treatment?.preventive) &&
+                          detection.diagnosis.treatment.preventive.map((tip: string, index: number) => (
+                            <div key={index} className="flex items-start gap-2">
+                              <CheckCircle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+                              <p className="text-sm">{tip}</p>
+                            </div>
+                          ))}
+                      </div>
                     </div>
-                    <p className="text-sm">{detection.diagnosis.expectedRecovery}</p>
-                  </div>
 
-                  <div className="flex gap-2">
-                    <Button
-                      variant="destructive"
-                      className="flex-1"
-                      onClick={handleDownloadReport}
-                    >
-                      <Download className="h-4 w-4" />
-                      Treatment Report
-                    </Button>
-                    <Button variant="outline" className="flex-1">
-                      Find Nearby Store
-                    </Button>
+                    {/* Recommended Products */}
+                    <div>
+                      <h4 className="font-semibold mb-3">Recommended Products</h4>
+                      <div className="space-y-3">
+                        {Array.isArray(detection.diagnosis.products) &&
+                          detection.diagnosis.products.map((product: any, index: number) => (
+                            <div key={index} className="p-3 bg-secondary rounded-lg">
+                              <p className="font-medium text-sm">{product.name}</p>
+                              <p className="text-xs text-muted-foreground">Dosage: {product.dosage}</p>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+
+                    {/* Nutrient Recommendations */}
+                    {Array.isArray(detection.diagnosis.nutrientRecommendations) && detection.diagnosis.nutrientRecommendations.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold mb-3">Nutrient Recommendations</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {detection.diagnosis.nutrientRecommendations.map((nutrient: string, idx: number) => (
+                            <span key={idx} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
+                              {nutrient}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Pesticide Recommendations */}
+                    {Array.isArray(detection.diagnosis.pesticideRecommendations) && detection.diagnosis.pesticideRecommendations.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold mb-3">Pesticide Recommendations</h4>
+                        <ul className="list-disc list-inside text-sm">
+                          {detection.diagnosis.pesticideRecommendations.map((rec: string, idx: number) => (
+                            <li key={idx}>{rec}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Recovery Timeline */}
+                    <div className="p-3 bg-success/10 rounded-lg border border-success/20">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Clock className="h-4 w-4 text-success" />
+                        <span className="text-sm font-medium text-success">Expected Recovery</span>
+                      </div>
+                      <p className="text-sm">{detection.diagnosis.expectedRecovery}</p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        variant="destructive"
+                        className="flex-1"
+                        onClick={handleDownloadReport}
+                      >
+                        <Download className="h-4 w-4" />
+                        Treatment Report
+                      </Button>
+                      
+                    </div>
                   </div>
-                </div>
+                </>
               ) : (
                 <div className="text-center py-8">
                   <img

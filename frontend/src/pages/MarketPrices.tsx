@@ -1,101 +1,155 @@
+import React, { useEffect, useState } from "react";
 import Navigation from "@/components/Navigation";
 import VoiceInput from "@/components/VoiceInput";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, DollarSign, Calendar, MapPin, Bell } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Calendar, MapPin, Bell, Loader2 } from "lucide-react";
 import marketImage from "@/assets/market-prices.jpg";
+import { useLanguage } from "@/contexts/LanguageContext"; // add import
+
+const GEMINI_API_KEY = "AIzaSyBIsiLsq9A6PRySUhJwbMPtyXLTaVpoJig"; // Replace with your Gemini API key
+const GEMINI_MODEL = "gemini-2.0-flash"; // Or your preferred Gemini model
+
+const callGemini = async (prompt: string, language: string) => {
+  // Add language preference to the prompt
+  const langPrompt = language && language !== "en"
+    ? `${prompt} Respond in ${language} language.`
+    : prompt;
+  const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL + ":generateContent?key=" + GEMINI_API_KEY, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: langPrompt }] }]
+    }),
+  });
+  if (!res.ok) throw new Error("Gemini API error");
+  const data = await res.json();
+  try {
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const match = text.match(/```json\s*([\s\S]*?)```/i);
+    if (match) {
+      return JSON.parse(match[1]);
+    }
+    return JSON.parse(text);
+  } catch {
+    return {};
+  }
+};
 
 const MarketPrices = () => {
-  const marketData = [
-    {
-      crop: "Wheat",
-      currentPrice: 2150,
-      previousPrice: 2100,
-      change: 2.4,
-      unit: "per quintal",
-      market: "Delhi Mandi",
-      quality: "FAQ",
-      trend: "up",
-      prediction: "Prices expected to rise 5-8% next week"
-    },
-    {
-      crop: "Rice",
-      currentPrice: 3200,
-      previousPrice: 3280,
-      change: -2.4,
-      unit: "per quintal", 
-      market: "Punjab Mandi",
-      quality: "Basmati",
-      trend: "down",
-      prediction: "Seasonal decline expected"
-    },
-    {
-      crop: "Cotton",
-      currentPrice: 5600,
-      previousPrice: 5550,
-      change: 0.9,
-      unit: "per quintal",
-      market: "Gujarat Mandi",
-      quality: "Medium Staple",
-      trend: "up",
-      prediction: "Export demand driving prices up"
-    },
-    {
-      crop: "Sugarcane",
-      currentPrice: 320,
-      previousPrice: 315,
-      change: 1.6,
-      unit: "per quintal",
-      market: "Maharashtra Mandi",
-      quality: "Fresh",
-      trend: "up",
-      prediction: "Peak season demand"
-    },
-    {
-      crop: "Tomato",
-      currentPrice: 1800,
-      previousPrice: 2200,
-      change: -18.2,
-      unit: "per quintal",
-      market: "Karnataka Mandi", 
-      quality: "Grade A",
-      trend: "down",
-      prediction: "Good harvest lowering prices"
-    },
-    {
-      crop: "Onion",
-      currentPrice: 2500,
-      previousPrice: 2300,
-      change: 8.7,
-      unit: "per quintal",
-      market: "Nashik Mandi",
-      quality: "Medium",
-      trend: "up",
-      prediction: "Storage shortage driving prices"
-    }
-  ];
+  const { t } = useLanguage(); // add hook
+  const [apiPrices, setApiPrices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchCrop, setSearchCrop] = useState("");
+  const [searchResult, setSearchResult] = useState<any | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [userLang, setUserLang] = useState<string>("en");
+  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
-  const recommendations = [
-    {
-      type: "Sell Now",
-      crops: ["Cotton", "Sugarcane"],
-      reason: "Prices at seasonal high",
-      urgency: "high"
-    },
-    {
-      type: "Wait",
-      crops: ["Wheat"],
-      reason: "Expected price rise next week", 
-      urgency: "medium"
-    },
-    {
-      type: "Hold",
-      crops: ["Rice", "Tomato"],
-      reason: "Prices may stabilize soon",
-      urgency: "low"
+  const getToday = () => {
+    const d = new Date();
+    return d.toISOString().split("T")[0];
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    if (!navigator.geolocation) {
+      setError("Geolocation not supported");
+      setLoading(false);
+      return;
     }
-  ];
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          const date = getToday();
+          const prompt = `Give me a JSON array of all crop prices (fields: crop, currentPrice, unit, market, quality, date) for today (${date}) near latitude ${lat}, longitude ${lon}. Respond only with JSON.`;
+          const data = await callGemini(prompt, userLang);
+          setApiPrices(Array.isArray(data) ? data : data.prices || []);
+        } catch (e: any) {
+          setError(e.message || "Error fetching prices");
+        } finally {
+          setLoading(false);
+        }
+      },
+      (err) => {
+        setError("Location access denied");
+        setLoading(false);
+      }
+    );
+  // add userLang as dependency
+  }, [userLang]);
+
+  useEffect(() => {
+    // Fetch market analysis and trends
+    setAnalysisLoading(true);
+    setAnalysisError(null);
+    if (!navigator.geolocation) {
+      setAnalysisError("Geolocation not supported");
+      setAnalysisLoading(false);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          const date = getToday();
+          const prompt = `Give me a short, structured market analysis and trend summary for all major crops for today (${date}) near latitude ${lat}, longitude ${lon}. Respond in markdown and in ${userLang} language.`;
+          const data = await callGemini(prompt, userLang);
+          // If Gemini returns a string, use it directly; if object, try to extract text
+          setAnalysis(typeof data === "string" ? data : data.analysis || JSON.stringify(data));
+        } catch (e: any) {
+          setAnalysisError(e.message || "Error fetching analysis");
+        } finally {
+          setAnalysisLoading(false);
+        }
+      },
+      (err) => {
+        setAnalysisError("Location access denied");
+        setAnalysisLoading(false);
+      }
+    );
+  }, [userLang]);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchCrop.trim()) return;
+    setSearchLoading(true);
+    setSearchResult(null);
+    setError(null);
+    if (!navigator.geolocation) {
+      setError("Geolocation not supported");
+      setSearchLoading(false);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          const date = getToday();
+          const prompt = `Give me a JSON object for the latest price and details (fields: crop, currentPrice, unit, market, quality, date) for ${searchCrop} today (${date}) near latitude ${lat}, longitude ${lon}. Respond only with JSON.`;
+          const data = await callGemini(prompt, userLang);
+          setSearchResult(data);
+        } catch (e: any) {
+          setError(e.message || "Error fetching crop price");
+        } finally {
+          setSearchLoading(false);
+        }
+      },
+      (err) => {
+        setError("Location access denied");
+        setSearchLoading(false);
+      }
+    );
+  };
 
   const getTrendIcon = (trend: string, change: number) => {
     if (trend === "up" || change > 0) {
@@ -123,218 +177,175 @@ const MarketPrices = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary mb-4">Market Prices</h1>
+          <h1 className="text-4xl font-bold text-primary mb-4">{t("market.title")}</h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Track real-time commodity prices and get AI-powered insights 
-            on the best time to sell your crops for maximum profit.
+            {t("market.subtitle")}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Price Cards */}
-          <div className="lg:col-span-3 space-y-4">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">Today's Prices</h2>
-              <Badge variant="outline" className="text-sm">
-                <Calendar className="h-3 w-3 mr-1" />
-                Updated 2 hours ago
-              </Badge>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {marketData.map((item, index) => (
-                <Card key={index} className="animate-fade-in hover:shadow-medium transition-shadow">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{item.crop}</CardTitle>
-                      {getTrendIcon(item.trend, item.change)}
-                    </div>
-                    <CardDescription className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />
-                      {item.market} • {item.quality}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-bold">₹{item.currentPrice.toLocaleString()}</span>
-                        <span className="text-sm text-muted-foreground">{item.unit}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <span className={`text-sm font-medium ${getTrendColor(item.change)}`}>
-                          {item.change > 0 ? '+' : ''}{item.change}%
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          from ₹{item.previousPrice}
-                        </span>
-                      </div>
-
-                      <div className="p-2 bg-secondary rounded text-xs">
-                        <strong>AI Prediction:</strong> {item.prediction}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Voice Query */}
-            <Card className="animate-slide-up">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <DollarSign className="h-5 w-5 text-warning" />
-                  Price Query
-                </CardTitle>
-                <CardDescription>
-                  Ask about prices in your language
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <VoiceInput />
-                <div className="mt-4 space-y-2">
-                  <Button variant="outline" size="sm" className="w-full text-left justify-start">
-                    "What's wheat price today?"
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full text-left justify-start">
-                    "Best time to sell cotton?"
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full text-left justify-start">
-                    "Tomato rates in my area?"
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Selling Recommendations */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <TrendingUp className="h-5 w-5 text-success" />
-                  AI Recommendations
-                </CardTitle>
-                <CardDescription>
-                  Smart selling advice based on market trends
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {recommendations.map((rec, index) => (
-                    <div key={index} className="p-3 border rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <Badge variant={getUrgencyColor(rec.urgency)}>
-                          {rec.type}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {rec.urgency} priority
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">
-                          {rec.crops.join(", ")}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {rec.reason}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Price Alerts */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Bell className="h-5 w-5 text-accent" />
-                  Price Alerts
-                </CardTitle>
-                <CardDescription>
-                  Get notified when prices hit your target
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full">
-                    <Bell className="h-4 w-4" />
-                    Set Price Alert
-                  </Button>
-                  <Button variant="outline" className="w-full">
-                    <Calendar className="h-4 w-4" />
-                    Schedule Reports
-                  </Button>
-                </div>
-                
-                <div className="mt-4 p-3 bg-accent/10 rounded-lg">
-                  <p className="text-sm font-medium text-accent mb-1">Active Alerts</p>
-                  <div className="space-y-1">
-                    <p className="text-xs">Wheat &gt; ₹2,200/quintal</p>
-                    <p className="text-xs">Cotton &lt; ₹5,800/quintal</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        {/* Language Selector */}
+        <div className="mb-4 flex justify-end">
+          <label className="mr-2 font-medium">{t("market.language")}</label>
+          <select value={userLang} onChange={e => setUserLang(e.target.value)} className="border rounded px-2 py-1">
+            <option value="en">{t("market.english")}</option>
+            <option value="hi">{t("market.hindi")}</option>
+            <option value="mr">{t("market.marathi")}</option>
+            <option value="ta">{t("market.tamil")}</option>
+            <option value="te">{t("market.telugu")}</option>
+            <option value="bn">{t("market.bengali")}</option>
+            {/* Add more as needed */}
+          </select>
         </div>
 
-        {/* Market Analysis */}
-        <div className="mt-8">
-          <Card className="animate-fade-in">
+        {/* Gemini API Crop Prices Section */}
+        <div className="mb-8">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                Market Analysis & Trends
+                <DollarSign className="h-5 w-5 text-warning" />
+                {t("market.latestPrices")}
               </CardTitle>
-              <CardDescription>
-                Weekly market insights and selling opportunities
-              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <h4 className="font-semibold text-green-700 mb-2">Rising Markets</h4>
-                  <p className="text-sm text-green-600 mb-3">
-                    Export demand driving up grain prices. Good time to sell stored produce.
-                  </p>
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium">Wheat: +5.2%</div>
-                    <div className="text-sm font-medium">Cotton: +3.8%</div>
-                  </div>
+              <form onSubmit={handleSearch} className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  placeholder={t("market.enterCropName")}
+                  className="border rounded px-3 py-2 flex-1"
+                  value={searchCrop}
+                  onChange={e => setSearchCrop(e.target.value)}
+                  disabled={searchLoading}
+                />
+                <Button type="submit" disabled={searchLoading || !searchCrop.trim()}>
+                  {searchLoading ? <Loader2 className="animate-spin h-4 w-4" /> : t("market.search")}
+                </Button>
+              </form>
+              {error && <div className="text-red-600 text-sm mb-2">{t(error)}</div>}
+              {searchLoading && (
+                <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                  <Loader2 className="animate-spin h-4 w-4" /> {t("market.fetchingCropPrice")}
                 </div>
-
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <h4 className="font-semibold text-yellow-700 mb-2">Stable Markets</h4>
-                  <p className="text-sm text-yellow-600 mb-3">
-                    Balanced supply-demand. Prices likely to remain steady for 2-3 weeks.
-                  </p>
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium">Sugarcane: +0.9%</div>
-                    <div className="text-sm font-medium">Soybean: -0.3%</div>
-                  </div>
+              )}
+              {/* Show search result above all crop prices */}
+              {searchResult && (
+                <div className="mb-4">
+                  <Card className="border-green-300">
+                    <CardHeader>
+                      <CardTitle>{searchResult.crop}</CardTitle>
+                      <CardDescription>
+                        {searchResult.market} • {searchResult.quality}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-bold">₹{searchResult.currentPrice}</span>
+                        <span className="text-sm text-muted-foreground">{searchResult.unit}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {t("market.lastUpdated")}: {searchResult.date || getToday()}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <h4 className="font-semibold text-red-700 mb-2">Declining Markets</h4>
-                  <p className="text-sm text-red-600 mb-3">
-                    Good harvest season causing price drops. Consider holding for better rates.
-                  </p>
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium">Tomato: -18.2%</div>
-                    <div className="text-sm font-medium">Rice: -2.4%</div>
-                  </div>
+              )}
+              {loading ? (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="animate-spin h-4 w-4" /> {t("market.loadingPrices")}
                 </div>
-              </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {apiPrices.length > 0 ? (
+                    apiPrices.map((item, idx) => (
+                      <Card key={idx} className="animate-fade-in hover:shadow-medium transition-shadow">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-lg">{item.crop}</CardTitle>
+                            {/* Optionally show trend icon if available */}
+                          </div>
+                          <CardDescription className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {item.market} • {item.quality}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-2xl font-bold">₹{item.currentPrice}</span>
+                              <span className="text-sm text-muted-foreground">{item.unit}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {t("market.lastUpdated")}: {item.date || getToday()}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  ) : (
+                    <div className="text-muted-foreground">{t("market.noPricesFound")}</div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
+
+        <div className="grid grid-cols-1 w-[100%] lg:grid-cols-4 gap-8">
+          {/* Price Cards */}
+          <div className="lg:col-span-3 space-y-4 w-full">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold">{t("market.todaysPrices")}</h2>
+              <Badge variant="outline" className="text-sm">
+                <Calendar className="h-3 w-3 mr-1" />
+                {t("market.updated")} {loading ? "..." : t("market.recently")}
+              </Badge>
+            </div>
+            {/* Only show Gemini API crop prices */}
+            {loading ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="animate-spin h-4 w-4" /> {t("market.loadingPrices")}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                {apiPrices.length > 0 ? (
+                  apiPrices.map((item, idx) => (
+                    <Card key={idx} className="animate-fade-in hover:shadow-medium transition-shadow w-full">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg">{item.crop}</CardTitle>
+                          {/* Optionally show trend icon if available */}
+                        </div>
+                        <CardDescription className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {item.market} • {item.quality}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-2xl font-bold">₹{item.currentPrice}</span>
+                            <span className="text-sm text-muted-foreground">{item.unit}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {t("market.lastUpdated")}: {item.date || getToday()}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="text-muted-foreground">{t("market.noPricesFound")}</div>
+                )}
+              </div>
+            )}
+          </div>
+          {/* Sidebar removed */}
+        </div>
+
+        {/* Market Analysis */}
+        
       </div>
     </div>
   );

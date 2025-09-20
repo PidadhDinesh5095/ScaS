@@ -121,12 +121,10 @@ const Index = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 mb-12">
-              <Button variant="hero" size="lg" className="text-lg px-8 py-4">
+              <Button variant="hero" size="lg" onClick={()=>{window.location.href='/soil'}} className="text-lg px-8 py-4">
                 {t('home.startButton')}
               </Button>
-              <Button variant="outline" size="lg" className="text-lg px-8 py-4 bg-white/10 border-white/30 text-white hover:bg-white/20">
-                {t('home.demoButton')}
-              </Button>
+              
             </div>
             {/* Demo voice button with stop functionality */}
             {!isDemoPlaying ? (
@@ -229,9 +227,7 @@ const Index = () => {
           <p className="text-muted-foreground">
             Empowering farmers with AI technology for sustainable agriculture
           </p>
-          <p className="text-sm text-muted-foreground mt-4">
-            © 2024 Smart Crop Advisor. All rights reserved.
-          </p>
+          
         </div>
       </footer>
     </div>

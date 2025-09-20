@@ -16,6 +16,7 @@ const FertilizerPlans = () => {
   const [selectedStage, setSelectedStage] = useState("");
   const [plan, setPlan] = useState<any>(null);
   const [completedTasks, setCompletedTasks] = useState<number[]>([]);
+  const [loading, setLoading] = useState(false);
 
   // Sort crops and growthStages in ascending order
   const crops = [
@@ -54,26 +55,39 @@ const FertilizerPlans = () => {
 
   const generatePlan = async () => {
     if (selectedCrop && selectedStage) {
+      setLoading(true);
+      setPlan(null);
+      const token = localStorage.getItem("token");
       try {
-        const response = await fetch(
-          "http://localhost:4000/fertilizer/plan",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              crop: selectedCrop,
-              stage: selectedStage
-            })
+        let data = null;
+        while (!data) {
+          const response = await fetch(
+            "http://localhost:4000/disease/plan",
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token || ""}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                crop: selectedCrop,
+                stage: selectedStage
+              })
+            }
+          );
+          if (response.ok) {
+            data = await response.json();
+            setPlan(data);
+          } else {
+            // Optionally break or retry based on error
+            setPlan(null);
+            break;
           }
-        );
-        if (response.ok) {
-          const data = await response.json();
-          setPlan(data);
-        } else {
-          setPlan(null);
         }
       } catch {
         setPlan(null);
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -182,107 +196,78 @@ const FertilizerPlans = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {plan ? (
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <svg className="animate-spin h-10 w-10 text-primary mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                  </svg>
+                  <p className="text-muted-foreground">{t("fertilizer.loading") || "Generating plan, please wait..."}</p>
+                </div>
+              ) : plan && plan.fertilizerPlan ? (
                 <div className="space-y-6">
                   {/* Plan Overview */}
                   <div className="grid grid-cols-2 gap-4 p-4 bg-earth/10 rounded-lg">
                     <div>
                       <p className="text-sm font-medium">{t("fertilizer.crop") || "Crop"}</p>
-                      <p className="text-lg">{t(`crops.${plan.crop}`) || plan.crop}</p>
+                      <p className="text-lg">{plan.fertilizerPlan.crop}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium">{t("fertilizer.stage") || "Stage"}</p>
-                      <p className="text-lg">{t(`growthStages.${plan.stage}`) || plan.stage}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{t("fertilizer.duration") || "Duration"}</p>
-                      <p className="text-lg">{plan.duration}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{t("fertilizer.expectedYield") || "Expected Yield"}</p>
-                      <p className="text-lg text-success">{plan.expectedYield}</p>
+                      <p className="text-lg">{plan.fertilizerPlan.stage}</p>
                     </div>
                   </div>
 
-                  {/* Schedule */}
+                  {/* Recommended Fertilizers */}
                   <div>
-                    <h4 className="font-semibold mb-4">{t("fertilizer.applicationSchedule") || "Application Schedule"}</h4>
+                    <h4 className="font-semibold mb-3">{t("fertilizer.recommendedFertilizers") || "Recommended Fertilizers"}</h4>
                     <div className="space-y-3">
-                      {plan.schedule.map((item: any, index: number) => (
-                        <div
-                          key={index}
-                          className={`p-4 border rounded-lg transition-all ${
-                            completedTasks.includes(index)
-                              ? "bg-success/10 border-success/30"
-                              : "bg-background border-border"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Badge variant="outline" className="text-xs">
-                                  {t("fertilizer.day") || "Day"} {item.day}
-                                </Badge>
-                                <Badge variant={getPriorityColor(item.priority)}>
-                                  {t(`fertilizer.${item.priority}`) || item.priority}
-                                </Badge>
-                              </div>
-                              <h5 className="font-medium mb-1">{t(`fertilizer.${item.task}`) || item.task}</h5>
-                              <p className="text-sm text-muted-foreground mb-1">
-                                {t("fertilizer.dosage") || "Dosage"}: {item.dosage}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {t("fertilizer.method") || "Method"}: {item.method}
-                              </p>
-                            </div>
-                            <Button
-                              variant={completedTasks.includes(index) ? "success" : "outline"}
-                              size="sm"
-                              onClick={() => toggleTaskCompletion(index)}
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                              {completedTasks.includes(index)
-                                ? t("fertilizer.done") || "Done"
-                                : t("fertilizer.markDone") || "Mark Done"}
-                            </Button>
-                          </div>
+                      {plan.fertilizerPlan.recommendedFertilizers.map((item: any, idx: number) => (
+                        <div key={idx} className="p-4 border rounded-lg bg-background">
+                          <div className="font-medium text-lg">{item.name}</div>
+                          <div className="text-sm text-muted-foreground">{item.type}</div>
+                          <div className="text-sm">{t("fertilizer.dosage") || "Dosage"}: {item.dosage}</div>
+                          <div className="text-sm">{t("fertilizer.applicationMethod") || "Application Method"}: {item.applicationMethod}</div>
+                          <div className="text-sm">{t("fertilizer.timing") || "Timing"}: {item.timing}</div>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  {/* Nutrient Requirements */}
+                  {/* Micronutrient Recommendations */}
                   <div>
-                    <h4 className="font-semibold mb-3">{t("fertilizer.nutrientRequirements") || "Nutrient Requirements"}</h4>
-                    <div className="grid grid-cols-1 gap-2">
-                      {Object.entries(plan.nutrients).map(([nutrient, requirement]) => (
-                        <div key={nutrient} className="flex justify-between p-2 bg-secondary rounded">
-                          <span className="capitalize text-sm font-medium">{t(`fertilizer.${nutrient}`) || nutrient}</span>
-                          <span className="text-sm text-muted-foreground">{requirement as string}</span>
-                        </div>
+                    <h4 className="font-semibold mb-3">{t("fertilizer.micronutrients") || "Micronutrient Recommendations"}</h4>
+                    <ul className="list-disc ml-6 space-y-1">
+                      {plan.fertilizerPlan.micronutrientRecommendations.map((rec: string, idx: number) => (
+                        <li key={idx} className="text-sm">{rec}</li>
                       ))}
-                    </div>
+                    </ul>
                   </div>
 
-                  {/* Cost & Actions */}
-                  <div className="space-y-4">
-                    <div className="p-3 bg-success/10 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">{t("fertilizer.estimatedCost") || "Estimated Cost"}</span>
-                        <span className="text-lg font-bold text-success">{plan.cost}</span>
-                      </div>
-                    </div>
+                  {/* Organic Amendments */}
+                  <div>
+                    <h4 className="font-semibold mb-3">{t("fertilizer.organicAmendments") || "Organic Amendments"}</h4>
+                    <ul className="list-disc ml-6 space-y-1">
+                      {plan.fertilizerPlan.organicAmendments.map((rec: string, idx: number) => (
+                        <li key={idx} className="text-sm">{rec}</li>
+                      ))}
+                    </ul>
+                  </div>
 
-                    <div className="flex gap-2">
-                      <Button variant="earth" className="flex-1">
-                        <Bell className="h-4 w-4" />
-                        {t("fertilizer.setReminders") || "Set Reminders"}
-                      </Button>
-                      <Button variant="outline" className="flex-1">
-                        <Calendar className="h-4 w-4" />
-                        {t("fertilizer.exportSchedule") || "Export Schedule"}
-                      </Button>
-                    </div>
+                  {/* Safety and Environmental Tips */}
+                  <div>
+                    <h4 className="font-semibold mb-3">{t("fertilizer.safetyAndEnvironmentalTips") || "Safety & Environmental Tips"}</h4>
+                    <ul className="list-disc ml-6 space-y-1">
+                      {plan.fertilizerPlan.safetyAndEnvironmentalTips.map((tip: string, idx: number) => (
+                        <li key={idx} className="text-sm">{tip}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Notes */}
+                  <div>
+                    <h4 className="font-semibold mb-3">{t("fertilizer.notes") || "Notes"}</h4>
+                    <div className="text-sm">{plan.fertilizerPlan.notes}</div>
                   </div>
                 </div>
               ) : (
