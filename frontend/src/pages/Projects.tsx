@@ -17,7 +17,7 @@ const Projects = () => {
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:4000/project/", {
+        const res = await fetch("https://scas-5do2.onrender.com/project/", {
           headers: { Authorization: `Bearer ${token || ""}` }
         });
         const data = await res.json();
@@ -192,5 +192,6 @@ const Projects = () => {
     </div>
   );
 };
+
 
 export default Projects;
