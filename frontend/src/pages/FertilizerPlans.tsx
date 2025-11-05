@@ -62,7 +62,7 @@ const FertilizerPlans = () => {
         let data = null;
         while (!data) {
           const response = await fetch(
-            "http://localhost:4000/disease/plan",
+            "https://scas-5do2.onrender.com/disease/plan",
             {
               method: "POST",
               headers: {
@@ -289,5 +289,6 @@ const FertilizerPlans = () => {
     </div>
   );
 };
+
 
 export default FertilizerPlans;
