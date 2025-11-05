@@ -8,8 +8,8 @@ import { TrendingUp, TrendingDown, DollarSign, Calendar, MapPin, Bell, Loader2 }
 import marketImage from "@/assets/market-prices.jpg";
 import { useLanguage } from "@/contexts/LanguageContext"; // add import
 
-const GEMINI_API_KEY = "AIzaSyBIsiLsq9A6PRySUhJwbMPtyXLTaVpoJig"; // Replace with your Gemini API key
-const GEMINI_MODEL = "gemini-2.0-flash"; // Or your preferred Gemini model
+const GEMINI_API_KEY = "AIzaSyAFGuFVnPR5FUFEYardOPZIPtf6X5HttOw"; 
+const GEMINI_MODEL = "gemini-2.0-flash"; 
 
 const callGemini = async (prompt: string, language: string) => {
   // Add language preference to the prompt
@@ -350,5 +350,6 @@ const MarketPrices = () => {
     </div>
   );
 };
+
 
 export default MarketPrices;
