@@ -33,7 +33,7 @@ Current Date: "${todayStr}"
 
         // Call Gemini 2.0 Flash API directly
         const geminiRes = await fetch(
-          "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=AIzaSyBIsiLsq9A6PRySUhJwbMPtyXLTaVpoJig",
+          "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=AIzaSyAFGuFVnPR5FUFEYardOPZIPtf6X5HttOw",
           {
             method: "POST",
             headers: {
@@ -197,5 +197,6 @@ Current Date: "${todayStr}"
     </div>
   );
 };
+
 
 export default Weather;
