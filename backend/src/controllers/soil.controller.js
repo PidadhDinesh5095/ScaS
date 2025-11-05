@@ -20,12 +20,29 @@ const parsePDF = async (buffer) => {
   return fullText;
 };
 
+// Map of language codes to native names
+const languageNativeNames = {
+  en: "English",
+  hi: "हिंदी",
+  bn: "বাংলা",
+  te: "తెలుగు",
+  mr: "मराठी",
+  ta: "தமிழ்",
+  gu: "ગુજરાતી",
+  kn: "ಕನ್ನಡ",
+  ml: "മലയാളം",
+  or: "ଓଡ଼ିଆ",
+  pa: "ਪੰਜਾਬੀ",
+  
+  
+};
+
 export async function analyze(req, res) {
   try {
     const file = req.file;
     console.log("File received in analyze:", file);
-   const user = await User.findById(req.user._id);
-if (!user) return res.status(404).json({ error: 'User not found' });
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
 
     let inputForGemini;
     let inputType;
@@ -41,7 +58,10 @@ if (!user) return res.status(404).json({ error: 'User not found' });
       return res.status(400).json({ error: 'Unsupported file type' });
     }
 
-    const language = user.language || 'en-IN';
+    // Convert language code to native name
+    const languageCode = user.preferences.language;
+    const language = languageNativeNames[languageCode] || languageCode;
+
     const farmerType = user.farmerType || null;
     const location = user.location || null;
     
@@ -49,7 +69,7 @@ if (!user) return res.status(404).json({ error: 'User not found' });
     const result = await analyzeSoilAndRecommendCrop({
       input: inputForGemini,
       inputType,
-      language,
+      language, // now native name
       farmerType,
       location
     });

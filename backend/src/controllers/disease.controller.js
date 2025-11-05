@@ -19,6 +19,24 @@ const parsePDF = async (buffer) => {
   return fullText;
 };
 
+// Map of language codes to native names
+const languageNativeNames = {
+  en: "English",
+  hi: "हिंदी",
+  bn: "বাংলা",
+  te: "తెలుగు",
+  mr: "मराठी",
+  ta: "தமிழ்",
+  gu: "ગુજરાતી",
+  kn: "ಕನ್ನಡ",
+  ml: "മലയാളം",
+  or: "ଓଡ଼ିଆ",
+  pa: "ਪੰਜਾਬੀ",
+ 
+  
+  // ...add more as needed...
+};
+
 export async function diagnose(req, res) {
   try {
     const file = req.file;
@@ -39,14 +57,14 @@ export async function diagnose(req, res) {
       return res.status(400).json({ error: 'Unsupported file type' });
     }
 
-    const language = user.language || 'en-IN';
- 
+    // Convert language code to native name
+    const languageCode = user.preferences.language;
+    const language = languageNativeNames[languageCode] || languageCode;
 
     const result = await diagnoseDisease({
       input: inputForGemini,
       inputType,
       language,
-      
     });
 
     const doc = await DiseaseAnalysis.create({

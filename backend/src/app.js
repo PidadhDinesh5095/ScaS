@@ -7,6 +7,8 @@ import soilRoutes from './routes/soil.routes.js';
 import diseaseRoutes from './routes/disease.routes.js';
 import weatherRoutes from './routes/weather.routes.js';
 import marketRoutes from './routes/market.routes.js';
+import project from './models/project.js';
+import projectRoutes from './routes/project.routes.js';
 
 const app = express();
 
@@ -18,6 +20,7 @@ app.use('/soil', soilRoutes);
 app.use('/disease', diseaseRoutes);
 app.use('/weather', weatherRoutes);
 app.use('/market', marketRoutes);
+app.use('/project',projectRoutes);
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 

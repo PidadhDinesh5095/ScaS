@@ -7,16 +7,15 @@ import { current, advisory } from '../controllers/weather.controller.js';
 
 const router = Router();
 
-router.get(
+router.post(
   '/current',
   authRequired,
-  [
+   [
     query('lat').isFloat({ min: -90, max: 90 }),
     query('lon').isFloat({ min: -180, max: 180 }),
-    query('units').optional().isIn(['metric', 'imperial', 'standard']),
-    query('exclude').optional().isString()
+    
   ],
-  validate,
+   validate,
   current
 );
 

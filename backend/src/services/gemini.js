@@ -3,7 +3,7 @@ import pkg from '@google/genai';
 const { GoogleGenerativeAI } = pkg;
 import axios from 'axios';
 
-const apiKey = "AIzaSyBIsiLsq9A6PRySUhJwbMPtyXLTaVpoJig";
+const apiKey = "AIzaSyAFGuFVnPR5FUFEYardOPZIPtf6X5HttOw";
 if (!apiKey) throw new Error('GEMINI_API_KEY not set');
 
 function ensureLang(lang) {
@@ -184,15 +184,33 @@ ${input}
   return response;
 }
 
-export async function weatherAdvisory({ weatherJson, crop, language }) {
+export async function weatherAdvisory({ weatherJson, language }) {
   const lang = ensureLang(language);
   const prompt = `
 Respond in ${lang}.
-Given this weather forecast JSON and crop: ${crop || 'N/A'},
-provide actionable guidance for irrigation, pest/disease risk, and field operations for the next 3-5 days.
+Given the following weather location JSON (lat/lon), provide a JSON object with:
+- "advisoryText": Actionable guidance for irrigation, pest/disease risk, and field operations for the next 3-5 days (in user language).
+- "forecastSummary": If available, summarize the coming 5 days' weather, including rain percentage and other relevant data, as an array of objects.
 
-Weather JSON:
-${JSON.stringify(weatherJson).slice(0, 15000)}
+Location JSON:
+${JSON.stringify(weatherJson)}
+
+Respond ONLY in a pure JSON object with two keys:
+{
+  "advisoryText": "...", // (Actionable farming advice in user language)
+  "forecastSummary": [
+    {
+      "day": "...",           // (e.g., "Today", "Day 2", etc.)
+      "date": "...",          // (YYYY-MM-DD)
+      "high": "...",          // (Max temperature)
+      "low": "...",           // (Min temperature)
+      "condition": "...",     // (Weather condition in user language)
+      "rain": "...",          // (Rainfall amount, if available)
+      "rainPercent": "..."    // (Rain probability %)
+    }
+    // ...repeat for 5 days
+  ]
+}
   `.trim();
 
   return await geminiRequest({ prompt });
@@ -209,4 +227,111 @@ Series: ${JSON.stringify(priceSeries || []).slice(0, 15000)}
   `.trim();
 
   return await geminiRequest({ prompt });
+}
+
+export async function getFertilizerPlan({ crop, stage, language }) {
+  const lang = ensureLang(language);
+  console.log("getFertilizerPlan called with crop:", crop, "stage:", stage, "language:", language, "resolved to:", lang);
+
+  const prompt = `
+You are an expert agronomist. Given the crop and its growth stage, provide a detailed fertilizer plan. Respond ONLY in a pure JSON object (no extra text, no markdown).
+
+"fertilizerPlan" → Provide:
+- Crop name (in user language)
+- Stage (in user language)
+- Recommended fertilizers (list of objects: { name, type, dosage, applicationMethod, timing } in user language)
+- Micronutrient recommendations (list in user language)
+- Organic amendments (list in user language)
+- Safety and environmental tips (list in user language)
+- Notes (any special instructions in user language)
+
+All text must be in the user's language (${lang}).
+
+Example response:
+{
+  "fertilizerPlan": {
+    "crop": "...",                         // (Crop name in user language)
+    "durationSchedule": [                  // Timeline from sowing to harvest
+      {
+        "daysAfterSowing": 0,              // Day of sowing
+        "stage": "Sowing/Basal",
+        "recommendedFertilizers": [
+          { 
+            "name": "...", 
+            "type": "...", 
+            "dosage": "...", 
+            "applicationMethod": "...", 
+            "frequency": "Single dose"
+          }
+        ],
+        "micronutrients": [
+          { "name": "...", "dosage": "...", "applicationMethod": "..." }
+        ],
+        "organicAmendments": [
+          { "name": "...", "dosage": "...", "applicationMethod": "..." }
+        ]
+      },
+      {
+        "daysAfterSowing": 20,
+        "stage": "Vegetative Growth",
+        "recommendedFertilizers": [
+          { 
+            "name": "...", 
+            "type": "...", 
+            "dosage": "...", 
+            "applicationMethod": "...", 
+            "frequency": "Once"
+          }
+        ]
+      },
+      {
+        "daysAfterSowing": 40,
+        "stage": "Flowering",
+        "recommendedFertilizers": [
+          { 
+            "name": "...", 
+            "type": "...", 
+            "dosage": "...", 
+            "applicationMethod": "...", 
+            "frequency": "Once or repeat every 15 days"
+          }
+        ],
+        "micronutrients": [
+          { "name": "...", "dosage": "...", "applicationMethod": "Foliar spray" }
+        ]
+      },
+      {
+        "daysAfterSowing": 70,
+        "stage": "Fruiting/Grain Filling",
+        "recommendedFertilizers": [
+          { 
+            "name": "...", 
+            "type": "...", 
+            "dosage": "...", 
+            "applicationMethod": "...", 
+            "frequency": "Once"
+          }
+        ]
+      }
+    ],
+    "safetyTips": [
+      "Wear gloves while handling fertilizers",
+      "Avoid over-application to prevent soil salinity",
+      "Irrigate immediately after applying fertilizers"
+    ],
+    "notes": "Timings may vary by crop duration; always adjust based on soil test results and local agricultural guidelines."
+  }
+}
+
+
+
+
+Input:
+Crop: ${crop}
+Stage: ${stage}
+  `.trim();
+
+  const response = await geminiRequest({ prompt });
+  console.log("Gemini response (fertilizer plan):", response);
+  return response;
 }
