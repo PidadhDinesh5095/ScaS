@@ -34,7 +34,7 @@ const SoilAnalysis = () => {
     const token = localStorage.getItem("token");
 
     try {
-      const response = await fetch("http://localhost:4000/soil/analyze", {
+      const response = await fetch("https://scas-5do2.onrender.com/soil/analyze", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token || ""}`,
@@ -321,5 +321,6 @@ const SoilAnalysis = () => {
     </div>
   );
 };
+
 
 export default SoilAnalysis;
