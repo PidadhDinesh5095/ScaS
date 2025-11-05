@@ -39,7 +39,7 @@ const DiseaseDetection = () => {
     const token = localStorage.getItem("token");
 
     try {
-      const response = await fetch("http://localhost:4000/disease/diagnose", {
+      const response = await fetch("https://scas-5do2.onrender.com/disease/diagnose", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token || ""}`,
@@ -345,5 +345,6 @@ const DiseaseDetection = () => {
     </div>
   );
 };
+
 
 export default DiseaseDetection;
