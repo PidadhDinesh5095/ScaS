@@ -7,7 +7,7 @@ export const indianStates = [
   "Goa",
   "Gujarat",
   "Haryana",
-  "Himachal Pradesh",
+  "Himachal Pradeshhhhh",
   "Jharkhand",
   "Karnataka",
   "Kerala",
@@ -41,4 +41,5 @@ export const farmerTypes = [
   { value: "small", labelKey: "auth.farmerType.small" },
   { value: "marginal", labelKey: "auth.farmerType.marginal" },
   { value: "large", labelKey: "auth.farmerType.business" }
+
 ];
