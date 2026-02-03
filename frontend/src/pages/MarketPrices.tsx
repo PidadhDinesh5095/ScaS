@@ -83,7 +83,7 @@ const MarketPrices = () => {
         setLoading(false);
       }
     );
-  // add userLang as dependency
+  
   }, [userLang]);
 
   useEffect(() => {
@@ -353,3 +353,4 @@ const MarketPrices = () => {
 
 
 export default MarketPrices;
+
