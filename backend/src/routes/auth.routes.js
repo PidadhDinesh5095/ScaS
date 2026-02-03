@@ -67,5 +67,7 @@ router.get('/me', authRequired, me);
 router.get('/test',()=>{
   console.log("test route");
 }); // alias
+//dinesh
 
 export default router;
+
