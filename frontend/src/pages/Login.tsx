@@ -53,6 +53,7 @@ const Login = () => {
         setTimeout(() => {
       window.location.href = "/"; // Redirect to home or dashboard
         },1500);
+      //dinesh
     } catch (err: any) {
       toast({
         variant: "destructive",
@@ -132,3 +133,4 @@ const Login = () => {
 
 
 export default Login;
+
