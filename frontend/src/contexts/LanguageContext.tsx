@@ -141,7 +141,7 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
 
     // Home page
     'home.title': 'Smart Farming with',
-    'home.titleAccent': 'AI Technology',
+    'home.titleAccent': 'AI* Technology',
     'home.subtitle': 'Revolutionize your farming with AI-powered soil analysis, disease detection, and crop management. Get expert advice in your local language with voice assistance.',
     'home.startButton': 'Start Farming Smarter',
     'home.demoButton': 'Watch Demo',
@@ -3010,4 +3010,5 @@ pa: {
 
 },
   
+
 }
