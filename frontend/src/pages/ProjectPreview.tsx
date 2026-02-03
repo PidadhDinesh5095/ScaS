@@ -354,8 +354,7 @@ const ProjectPreview = () => {
                   <h4 className="font-medium text-accent mb-2">Market Insights</h4>
                   <ul className="space-y-1 text-sm">
                     <li>• Current wheat prices trending upward (+5% this month)</li>
-                    <li>• Consider contract farming for better price assurance</li>
-                    <li>• Best selling period: Mid May to Early June</li>
+                   
                   </ul>
                 </div>
               </CardContent>
@@ -366,5 +365,6 @@ const ProjectPreview = () => {
     </div>
   );
 };
+
 
 export default ProjectPreview;
